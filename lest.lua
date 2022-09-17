@@ -1,7 +1,10 @@
 local level = 0
-local plan = {}
+local plan = nil
 local current_path = {}
 
+--- Get the n first elements of an array
+--
+-- [pure]
 local elements = function (list, len)
   local new = {}
   for i = 1, len do
@@ -10,6 +13,48 @@ local elements = function (list, len)
   return new
 end
 
+--- Calls cb one before all test of the describe block
+function beforeAll(cb)
+  if #current_path == 0 then
+    plan.beforeAll = cb
+  else
+    local path = table.concat(elements(current_path, level), ":")
+    plan.describes[path].beforeAll = cb
+  end
+end
+
+--- Calls cb once after all test of the describe block
+function afterAll(cb)
+  if #current_path == 0 then
+    plan.afterAll = cb
+  else
+    local path = table.concat(elements(current_path, level), ":")
+    plan.describes[path].afterAll = cb
+  end
+end
+
+--- Calls cb before each test of the describe block
+function beforeEach(cb)
+  if #current_path == 0 then
+    plan.beforeEach = cb
+  else
+    local path = table.concat(elements(current_path, level), ":")
+    plan.describes[path].beforeEach = cb
+  end
+end
+
+--- Calls cb after each test of the describe block
+function afterEach(cb)
+  if #current_path == 0 then
+    plan.afterEach = cb
+  else
+    local path = table.concat(elements(current_path, level), ":")
+    plan.describes[path].afterEach = cb
+  end
+end
+
+
+--- Describe unit tests
 function describe(label, cb)
   level = level + 1
   current_path[level] = (current_path[level] or 0) + 1
@@ -22,6 +67,7 @@ function describe(label, cb)
   level = level - 1
 end
 
+--- Run a unit test
 function it(label, cb)
   local path = table.concat(elements(current_path, level), ":")
   table.insert(plan.describes[path].its, { label = label, cb = cb, result = nil })
@@ -29,16 +75,16 @@ end
 
 local g_received = nil
 local g_expected = nil
+--- Creates an expectable object
 function expect(received)
   g_received = received
   return {
+    --- Comparison using equality operator (==)
     toBe = function (expected)
       g_expected = expected
-      -- local path = table.concat(elements(current_path, level), ":")
-      -- plan.describes[path].its[#plan.describes[path].its].received = received
-      -- plan.describes[path].its[#plan.describes[path].its].expected = expected
       assert(received == expected)
     end,
+    --- Comparison using inequality operator (~=)
     toNotBe = function (expected)
       g_expected = expected
       assert(received ~= expected)
@@ -46,10 +92,15 @@ function expect(received)
   }
 end
 
+--- Build test plan
 local buildPlan = function (filename)
   plan = {
     filename = filename,
     describes = {},
+    beforeAll = nil,
+    afterAll =  nil,
+    beforeEach = nil,
+    afterEach = nil,
     success = true,
     passed = 0,
     failed = {},
@@ -64,6 +115,7 @@ local buildPlan = function (filename)
   end
 end
 
+--- Traverse describes tree
 local traverse = function (cb)
   local path = { 1 }
   while true do
@@ -92,10 +144,34 @@ local traverse = function (cb)
   end
 end
 
+--- Run test plan
 local runPlan = function ()
   local clock = os.clock()
+
+  if plan.beforeAll then
+    plan.beforeAll()
+  end
+
+  local afterAlls = {}
   traverse(function (context, path)
+    if context.beforeAll then
+      context.beforeAll()
+    end
+
+    table.insert(afterAlls, context.afterAll)
+
     for i = 1, #context.its do
+      if plan.beforeEach then
+        plan.beforeEach()
+      end
+      for depth = 1, #path do
+        local key = table.concat(elements(path, depth), ":")
+        local ctx = plan.describes[key]
+        if ctx.beforeEach then
+           ctx.beforeEach()
+        end
+      end
+
       local cb = context.its[i].cb
       local ret, err = xpcall(cb, debug.traceback)
       if not ret then
@@ -118,11 +194,34 @@ local runPlan = function ()
         context.its[i].result = { passed = true }
         plan.passed = plan.passed + 1
       end
+
+      if plan.afterEach then
+        plan.afterEach()
+      end
+      for depth = 1, #path do
+        local key = table.concat(elements(path, depth), ":")
+        local ctx = plan.describes[key]
+        if ctx.afterEach then
+          ctx.afterEach()
+        end
+      end
+    end
+
+    local afterAllCb = table.remove(afterAlls)
+    if afterAllCb then
+      afterAllCb()
     end
   end)
+
+  if plan.afterAll then
+    plan.afterAll()
+  end
+
   plan.time = os.clock() - clock
 end
 
+--- Generate breadcrumb from path
+---@param path table
 function breadcrumb(path)
   if #path == 0 then
     return ""
@@ -134,10 +233,12 @@ function breadcrumb(path)
   return breadcrumb(elements(path, #path - 1)) .. " > " .. plan.describes[key].label
 end
 
+--- leftPad print
 local paddedPrint = function (str, depth)
   print(string.rep("  ", depth) .. str)
 end
 
+--- Pretty print all this mess
 local reportPlan = function ()
   if plan.success then
     print("\27[42m PASS \27[0m ./" .. plan.filename)
@@ -191,6 +292,7 @@ local reportPlan = function ()
   print("\27[1mTime:        \27[0m" .. plan.time * 100 .. "s")
 end
 
+--- Run a test file
 local runFile = function (filename)
   buildPlan(filename)
   runPlan()

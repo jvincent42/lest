@@ -1,16 +1,54 @@
+beforeAll(function ()
+  print("tout debut")
+end)
+
+afterAll(function ()
+  print("yolo")
+end)
+
+beforeEach(function ()
+  print("real before each")
+end)
+
+afterEach(function ()
+  print("real after each")
+end)
+
 describe("my_story", function ()
 
-  -- beforeAll(function () end)
-  -- beforeEach(function () end)
-  -- afterAll(function () end)
-  -- afterEach(function () end) 
+  beforeAll(function ()
+    print("beforeAll")
+  end)
+
+  afterAll(function ()
+    print("afterAll")
+  end)
+
+  beforeEach(function ()
+    print("beforeEach")
+  end)
+
+  afterEach(function ()
+    print("afterEach")
+  end)
 
   it('not runs', function ()
+    print("first tests")
     expect(40).toBe(42)
   end)
 
   describe("my_nested_story_1", function ()
+
+    beforeAll(function ()
+      print("beforeAll 2")
+    end)
+
+    afterAll(function ()
+      print("afterAll 2")
+    end)
+
     it('runs', function ()
+      print("first")
       expect(42).toBe(42)
     end)
     it('not runs', function ()
@@ -20,6 +58,7 @@ describe("my_story", function ()
       expect(42).toBe(42)
     end)
     it('runs', function ()
+      print("last")
       expect(42).toBe(42)
     end)
   end)
