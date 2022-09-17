@@ -16,43 +16,52 @@ end
 --- Calls cb one before all test of the describe block
 function beforeAll(cb)
   if #current_path == 0 then
-    plan.beforeAll = cb
+    table.insert(plan.beforeAll, cb)
   else
     local path = table.concat(elements(current_path, level), ":")
-    plan.describes[path].beforeAll = cb
+    table.insert(plan.describes[path].beforeAll, cb)
   end
 end
 
 --- Calls cb once after all test of the describe block
 function afterAll(cb)
   if #current_path == 0 then
-    plan.afterAll = cb
+    table.insert(plan.afterAll, cb)
   else
     local path = table.concat(elements(current_path, level), ":")
-    plan.describes[path].afterAll = cb
+    table.insert(plan.describes[path].afterAll, cb)
   end
 end
 
 --- Calls cb before each test of the describe block
 function beforeEach(cb)
   if #current_path == 0 then
-    plan.beforeEach = cb
+    table.insert(plan.beforeEach, cb)
   else
     local path = table.concat(elements(current_path, level), ":")
-    plan.describes[path].beforeEach = cb
+    table.insert(plan.describes[path].beforeEach, cb)
   end
 end
 
 --- Calls cb after each test of the describe block
 function afterEach(cb)
   if #current_path == 0 then
-    plan.afterEach = cb
+    table.insert(plan.afterEach, cb)
   else
     local path = table.concat(elements(current_path, level), ":")
-    plan.describes[path].afterEach = cb
+    table.insert(plan.describes[path].afterEach, cb)
   end
 end
 
+--- Run a unit test
+function it(label, cb)
+  if #current_path == 0 then
+    table.insert(plan.its, { label = label, cb = cb, result = nil })
+  else
+    local path = table.concat(elements(current_path, level), ":")
+    table.insert(plan.describes[path].its, { label = label, cb = cb, result = nil })
+  end
+end
 
 --- Describe unit tests
 function describe(label, cb)
@@ -62,15 +71,16 @@ function describe(label, cb)
   if not plan.describes[path] then
     plan.describes[path] = {}
   end
-  plan.describes[path] = { label = label, its = {} }
+  plan.describes[path] = {
+    label = label,
+    its = {},
+    beforeAll = {},
+    afterAll = {},
+    beforeEach = {},
+    afterEach = {}
+  }
   cb()
   level = level - 1
-end
-
---- Run a unit test
-function it(label, cb)
-  local path = table.concat(elements(current_path, level), ":")
-  table.insert(plan.describes[path].its, { label = label, cb = cb, result = nil })
 end
 
 local g_received = nil
@@ -97,10 +107,11 @@ local buildPlan = function (filename)
   plan = {
     filename = filename,
     describes = {},
-    beforeAll = nil,
-    afterAll =  nil,
-    beforeEach = nil,
-    afterEach = nil,
+    its = {},
+    beforeAll = {},
+    afterAll =  {},
+    beforeEach = {},
+    afterEach = {},
     success = true,
     passed = 0,
     failed = {},
@@ -118,6 +129,7 @@ end
 --- Traverse describes tree
 local traverse = function (cb)
   local path = { 1 }
+  cb(plan, {})
   while true do
     local key = table.concat(path, ":")
     if not plan.describes[key] then
@@ -148,27 +160,35 @@ end
 local runPlan = function ()
   local clock = os.clock()
 
-  if plan.beforeAll then
-    plan.beforeAll()
+  if #plan.beforeAll > 0 then
+    for i = 1, #plan.beforeAll do
+      plan.beforeAll[i]()
+    end
   end
 
   local afterAlls = {}
   traverse(function (context, path)
-    if context.beforeAll then
-      context.beforeAll()
+    if #context.beforeAll > 0 then
+      for j = 1, #context.beforeAll do
+        context.beforeAll[j]()
+      end
     end
 
     table.insert(afterAlls, context.afterAll)
 
     for i = 1, #context.its do
-      if plan.beforeEach then
-        plan.beforeEach()
+      if #plan.beforeEach > 0 then
+        for j = 1, #plan.beforeEach do
+          plan.beforeEach[j]()
+        end
       end
       for depth = 1, #path do
         local key = table.concat(elements(path, depth), ":")
         local ctx = plan.describes[key]
-        if ctx.beforeEach then
-           ctx.beforeEach()
+        if #ctx.beforeEach > 0 then
+          for j = 1, #ctx.beforeEach do
+            ctx.beforeEach[j]()
+          end
         end
       end
 
@@ -195,26 +215,34 @@ local runPlan = function ()
         plan.passed = plan.passed + 1
       end
 
-      if plan.afterEach then
-        plan.afterEach()
+      if #plan.afterEach > 0 then
+        for j = 1, #plan.afterEach do
+          plan.afterEach[j]()
+        end
       end
       for depth = 1, #path do
         local key = table.concat(elements(path, depth), ":")
         local ctx = plan.describes[key]
-        if ctx.afterEach then
-          ctx.afterEach()
+        if #ctx.afterEach > 0 then
+          for j = 1, #ctx.afterEach do
+            ctx.afterEach[j]()
+          end
         end
       end
     end
 
-    local afterAllCb = table.remove(afterAlls)
-    if afterAllCb then
-      afterAllCb()
+    local afterAllCbs = table.remove(afterAlls)
+    if afterAllCbs then
+      for i = 1, #afterAllCbs do
+        afterAllCbs[i]()
+      end
     end
   end)
 
-  if plan.afterAll then
-    plan.afterAll()
+  if #plan.afterAll > 0 then
+    for j = 1, #plan.afterAll do
+      plan.afterAll[j]()
+    end
   end
 
   plan.time = os.clock() - clock
@@ -247,7 +275,9 @@ local reportPlan = function ()
   end
 
   traverse(function (context, path)
-    paddedPrint(context.label, #path)
+    if context.label then
+      paddedPrint(context.label, #path)  
+    end
     for i = 1, #context.its do
       if context.its[i].result.passed then
         paddedPrint("\27[32m✓\27[0m \27[2m" .. context.its[i].label .. "\27[0m", #path + 1)
@@ -260,7 +290,11 @@ local reportPlan = function ()
   print("")
 
   for i = 1, #plan.failed do
-    print("\27[31m  ● " .. breadcrumb(plan.failed[i].path) .. " > " .. plan.failed[i].label .. "\27[0m")
+    if #plan.failed[i].path == 0 then
+      print("\27[31m  ● " .. plan.failed[i].label .. "\27[0m")
+    else
+      print("\27[31m  ● " .. breadcrumb(plan.failed[i].path) .. " > " .. plan.failed[i].label .. "\27[0m")
+    end
     print("")
     print("\27[2m    expect(\27[0m\27[31mreceived\27[0m\27[2m).\27[0mtoBe\27[2m(\27[0m\27[32mexpected\27[0m\27[2m)\27[0m")
     print("")
