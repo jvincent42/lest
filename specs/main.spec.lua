@@ -1,5 +1,4 @@
 it("breaks", function ()
-  print("break")
   expect(4).toBe(2)
 end)
 
