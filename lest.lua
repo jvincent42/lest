@@ -1,10 +1,30 @@
+--- Mock a function
+---
+--- return a callable table
+---@param cb function
+---@return table|function
+function fn(cb)
+  local Fn = { calls = {} }
+  local o = {}
+  function o.__call(self, ...)
+    table.insert(self.calls, { ... })
+    if cb then
+      return cb(...)
+    else
+      return ...
+    end
+  end
+  setmetatable(Fn, o)
+  return Fn
+end
+
 local level = 0
 local plan = nil
 local current_path = {}
 
 --- Get the n first elements of an array
---
--- [pure]
+---
+--- [pure]
 local elements = function (list, len)
   local new = {}
   for i = 1, len do
@@ -298,8 +318,8 @@ local reportPlan = function ()
     print("")
     print("\27[2m    expect(\27[0m\27[31mreceived\27[0m\27[2m).\27[0mtoBe\27[2m(\27[0m\27[32mexpected\27[0m\27[2m)\27[0m")
     print("")
-    print("    Expected: \27[32m".. plan.failed[i].expected .."\27[0m")
-    print("    Received: \27[31m".. plan.failed[i].received .."\27[0m")
+    print("    Expected: \27[32m".. tostring(plan.failed[i].expected) .."\27[0m")
+    print("    Received: \27[31m".. tostring(plan.failed[i].received) .."\27[0m")
     print("")
     print("      at " .. plan.failed[i].error)
     print("")
@@ -331,6 +351,10 @@ local runFile = function (filename)
   buildPlan(filename)
   runPlan()
   reportPlan()
+
+  if not plan.success then
+    os.exit(1)
+  end
 end
 
 if #arg == 0 then

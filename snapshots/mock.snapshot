@@ -1,0 +1,11 @@
+[42m PASS [0m ./specs/mock.spec.lua
+  mocks
+    [32m✓[0m [2mcreates a callable table[0m
+    [32m✓[0m [2mcalls identity if no cb provided[0m
+    [32m✓[0m [2mcalls cb if provided[0m
+    [32m✓[0m [2mcounts calls[0m
+    [32m✓[0m [2mbootstrap[0m
+
+[1mTest Suites: [0m[32m1 passed[0m, 1 total
+[1mTests:       [0m[32m5 passed[0m, 5 total
+[1mTime:        [0m0.0048s

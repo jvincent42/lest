@@ -1,0 +1,65 @@
+break
+[41m FAIL [0m ./specs/main.spec.lua
+  [31m✕[0m [2mbreaks[0m
+  my_story
+    [31m✕[0m [2mnot runs[0m
+    my_nested_story_1
+      [32m✓[0m [2mruns[0m
+      [31m✕[0m [2mnot runs[0m
+      [32m✓[0m [2mruns[0m
+      [32m✓[0m [2mruns[0m
+    my_nested_story_2
+      [32m✓[0m [2mruns[0m
+      [32m✓[0m [2mruns[0m
+      [32m✓[0m [2mruns[0m
+      [32m✓[0m [2mruns[0m
+      my_nested_story_2_1
+        [32m✓[0m [2mruns[0m
+        [32m✓[0m [2mruns[0m
+        [32m✓[0m [2mruns[0m
+        [32m✓[0m [2mruns[0m
+        my_nested_story_2_1_1
+          [32m✓[0m [2mruns[0m
+          [32m✓[0m [2mruns[0m
+          [32m✓[0m [2mruns[0m
+          [32m✓[0m [2mruns[0m
+      my_nested_story_2_2
+        [32m✓[0m [2mruns[0m
+        [32m✓[0m [2mruns[0m
+        [32m✓[0m [2mruns[0m
+        [32m✓[0m [2mruns[0m
+  my_other_story
+    [32m✓[0m [2mruns[0m
+    [32m✓[0m [2mruns[0m
+    [32m✓[0m [2mruns[0m
+
+[31m  ● breaks[0m
+
+[2m    expect([0m[31mreceived[0m[2m).[0mtoBe[2m([0m[32mexpected[0m[2m)[0m
+
+    Expected: [32m2[0m
+    Received: [31m4[0m
+
+      at specs/main.spec.lua:3: in function <specs/main.spec.lua:1>
+
+[31m  ● my_story > not runs[0m
+
+[2m    expect([0m[31mreceived[0m[2m).[0mtoBe[2m([0m[32mexpected[0m[2m)[0m
+
+    Expected: [32m42[0m
+    Received: [31m40[0m
+
+      at specs/main.spec.lua:8: in function <specs/main.spec.lua:7>
+
+[31m  ● my_story > my_nested_story_1 > not runs[0m
+
+[2m    expect([0m[31mreceived[0m[2m).[0mtoBe[2m([0m[32mexpected[0m[2m)[0m
+
+    Expected: [32mtata[0m
+    Received: [31mtoto[0m
+
+      at specs/main.spec.lua:25: in function <specs/main.spec.lua:24>
+
+[1mTest Suites: [0m[31m1 failed[0m, 1 total
+[1mTests:       [0m[31m3 failed[0m, [32m22 passed[0m, 25 total
+[1mTime:        [0m0.0818s
