@@ -1,3 +1,20 @@
+local plan = {}
+local level = 0
+local currentPlan = nil
+local singlefile = true
+local currentPath = {}
+
+--- Get the n first elements of an array
+---
+--- [pure]
+local elements = function (list, len)
+  local new = {}
+  for i = 1, len do
+    new[i] = list[i]
+  end
+  return new
+end
+
 --- Mock a function
 ---
 --- return a callable table
@@ -18,80 +35,65 @@ function fn(cb)
   return Fn
 end
 
-local level = 0
-local plan = nil
-local current_path = {}
-
---- Get the n first elements of an array
----
---- [pure]
-local elements = function (list, len)
-  local new = {}
-  for i = 1, len do
-    new[i] = list[i]
-  end
-  return new
-end
-
 --- Calls cb one before all test of the describe block
 function beforeAll(cb)
-  if #current_path == 0 then
-    table.insert(plan.beforeAll, cb)
+  if #currentPath == 0 then
+    table.insert(currentPlan.beforeAll, cb)
   else
-    local path = table.concat(elements(current_path, level), ":")
-    table.insert(plan.describes[path].beforeAll, cb)
+    local path = table.concat(elements(currentPath, level), ":")
+    table.insert(currentPlan.describes[path].beforeAll, cb)
   end
 end
 
 --- Calls cb once after all test of the describe block
 function afterAll(cb)
-  if #current_path == 0 then
-    table.insert(plan.afterAll, cb)
+  if #currentPath == 0 then
+    table.insert(currentPlan.afterAll, cb)
   else
-    local path = table.concat(elements(current_path, level), ":")
-    table.insert(plan.describes[path].afterAll, cb)
+    local path = table.concat(elements(currentPath, level), ":")
+    table.insert(currentPlan.describes[path].afterAll, cb)
   end
 end
 
 --- Calls cb before each test of the describe block
 function beforeEach(cb)
-  if #current_path == 0 then
-    table.insert(plan.beforeEach, cb)
+  if #currentPath == 0 then
+    table.insert(currentPlan.beforeEach, cb)
   else
-    local path = table.concat(elements(current_path, level), ":")
-    table.insert(plan.describes[path].beforeEach, cb)
+    local path = table.concat(elements(currentPath, level), ":")
+    table.insert(currentPlan.describes[path].beforeEach, cb)
   end
 end
 
 --- Calls cb after each test of the describe block
 function afterEach(cb)
-  if #current_path == 0 then
-    table.insert(plan.afterEach, cb)
+  if #currentPath == 0 then
+    table.insert(currentPlan.afterEach, cb)
   else
-    local path = table.concat(elements(current_path, level), ":")
-    table.insert(plan.describes[path].afterEach, cb)
+    local path = table.concat(elements(currentPath, level), ":")
+    table.insert(currentPlan.describes[path].afterEach, cb)
   end
 end
 
 --- Run a unit test
 function it(label, cb)
-  if #current_path == 0 then
-    table.insert(plan.its, { label = label, cb = cb, result = nil })
+  if #currentPath == 0 then
+    table.insert(currentPlan.its, { label = label, cb = cb, result = nil })
   else
-    local path = table.concat(elements(current_path, level), ":")
-    table.insert(plan.describes[path].its, { label = label, cb = cb, result = nil })
+    local path = table.concat(elements(currentPath, level), ":")
+    table.insert(currentPlan.describes[path].its, { label = label, cb = cb, result = nil })
   end
 end
 
 --- Describe unit tests
 function describe(label, cb)
   level = level + 1
-  current_path[level] = (current_path[level] or 0) + 1
-  local path = table.concat(elements(current_path, level), ":")
-  if not plan.describes[path] then
-    plan.describes[path] = {}
+  currentPath[level] = (currentPath[level] or 0) + 1
+  local path = table.concat(elements(currentPath, level), ":")
+  if not currentPlan.describes[path] then
+    currentPlan.describes[path] = {}
   end
-  plan.describes[path] = {
+  currentPlan.describes[path] = {
     label = label,
     its = {},
     beforeAll = {},
@@ -122,9 +124,9 @@ function expect(received)
   }
 end
 
---- Build test plan
-local buildPlan = function (filename)
-  plan = {
+--- Build test currentPlan
+local buildCurrentPlan = function (filename)
+  currentPlan = {
     filename = filename,
     describes = {},
     its = {},
@@ -137,6 +139,8 @@ local buildPlan = function (filename)
     failed = {},
     time = 0
   }
+  level = 0
+  currentPath = {}
   local f, err = loadfile(filename)
   if not f then
     print(err)
@@ -149,22 +153,22 @@ end
 --- Traverse describes tree
 local traverse = function (cb)
   local path = { 1 }
-  cb(plan, {})
+  cb(currentPlan, {})
   while true do
     local key = table.concat(path, ":")
-    if not plan.describes[key] then
+    if not currentPlan.describes[key] then
       table.remove(path)
       path[#path] = path[#path] + 1
     else
 
-      cb(plan.describes[key], {table.unpack(path)})
+      cb(currentPlan.describes[key], {table.unpack(path)})
 
-      if plan.describes[key..":1"] then
+      if currentPlan.describes[key..":1"] then
         table.insert(path, 1)
       else
         path[#path] = path[#path] + 1
         key = table.concat(path, ":")
-        if not plan.describes[key] then
+        if not currentPlan.describes[key] then
           table.remove(path)
           if #path == 0 then
             return
@@ -176,13 +180,13 @@ local traverse = function (cb)
   end
 end
 
---- Run test plan
-local runPlan = function ()
+--- Run test currentPlan
+local runCurrentPlan = function ()
   local clock = os.clock()
 
-  if #plan.beforeAll > 0 then
-    for i = 1, #plan.beforeAll do
-      plan.beforeAll[i]()
+  if #currentPlan.beforeAll > 0 then
+    for i = 1, #currentPlan.beforeAll do
+      currentPlan.beforeAll[i]()
     end
   end
 
@@ -197,14 +201,14 @@ local runPlan = function ()
     table.insert(afterAlls, context.afterAll)
 
     for i = 1, #context.its do
-      if #plan.beforeEach > 0 then
-        for j = 1, #plan.beforeEach do
-          plan.beforeEach[j]()
+      if #currentPlan.beforeEach > 0 then
+        for j = 1, #currentPlan.beforeEach do
+          currentPlan.beforeEach[j]()
         end
       end
       for depth = 1, #path do
         local key = table.concat(elements(path, depth), ":")
-        local ctx = plan.describes[key]
+        local ctx = currentPlan.describes[key]
         if #ctx.beforeEach > 0 then
           for j = 1, #ctx.beforeEach do
             ctx.beforeEach[j]()
@@ -218,12 +222,12 @@ local runPlan = function ()
         context.its[i].result = {
           passed = false
         }
-        plan.success = false
+        currentPlan.success = false
         local stack = {}
         for line in string.gmatch(err, "[^\n]+") do
           table.insert(stack, line)
         end
-        table.insert(plan.failed, {
+        table.insert(currentPlan.failed, {
           label = context.its[i].label,
           path = path,
           error = string.gsub(stack[5], "^%s+", ""),
@@ -232,17 +236,17 @@ local runPlan = function ()
         })
       else
         context.its[i].result = { passed = true }
-        plan.passed = plan.passed + 1
+        currentPlan.passed = currentPlan.passed + 1
       end
 
-      if #plan.afterEach > 0 then
-        for j = 1, #plan.afterEach do
-          plan.afterEach[j]()
+      if #currentPlan.afterEach > 0 then
+        for j = 1, #currentPlan.afterEach do
+          currentPlan.afterEach[j]()
         end
       end
       for depth = 1, #path do
         local key = table.concat(elements(path, depth), ":")
-        local ctx = plan.describes[key]
+        local ctx = currentPlan.describes[key]
         if #ctx.afterEach > 0 then
           for j = 1, #ctx.afterEach do
             ctx.afterEach[j]()
@@ -259,13 +263,13 @@ local runPlan = function ()
     end
   end)
 
-  if #plan.afterAll > 0 then
-    for j = 1, #plan.afterAll do
-      plan.afterAll[j]()
+  if #currentPlan.afterAll > 0 then
+    for j = 1, #currentPlan.afterAll do
+      currentPlan.afterAll[j]()
     end
   end
 
-  plan.time = os.clock() - clock
+  currentPlan.time = os.clock() - clock
 end
 
 --- Generate breadcrumb from path
@@ -276,9 +280,9 @@ function breadcrumb(path)
   end
   local key = table.concat(path, ":")
   if #path == 1 then
-    return plan.describes[key].label
+    return currentPlan.describes[key].label
   end
-  return breadcrumb(elements(path, #path - 1)) .. " > " .. plan.describes[key].label
+  return breadcrumb(elements(path, #path - 1)) .. " > " .. currentPlan.describes[key].label
 end
 
 --- leftPad print
@@ -287,78 +291,106 @@ local paddedPrint = function (str, depth)
 end
 
 --- Pretty print all this mess
-local reportPlan = function ()
-  if plan.success then
-    print("\27[42m PASS \27[0m ./" .. plan.filename)
+local reportCurrentPlan = function ()
+  if currentPlan.success then
+    plan.suitesPassed = plan.suitesPassed + 1
+    print("\27[42m\27[30m PASS \27[0m\27[0m ./" .. currentPlan.filename)
   else
-    print("\27[41m FAIL \27[0m ./" .. plan.filename)
+    plan.suitesFailed = plan.suitesFailed + 1
+    print("\27[41m\27[30m FAIL \27[0m\27[0m ./" .. currentPlan.filename)
   end
 
-  traverse(function (context, path)
-    if context.label then
-      paddedPrint(context.label, #path)  
-    end
-    for i = 1, #context.its do
-      if context.its[i].result.passed then
-        paddedPrint("\27[32m✓\27[0m \27[2m" .. context.its[i].label .. "\27[0m", #path + 1)
-      else
-        paddedPrint("\27[31m✕\27[0m \27[2m" .. context.its[i].label .. "\27[0m", #path + 1)
+  if singlefile then
+    traverse(function (context, path)
+      if context.label then
+        paddedPrint(context.label, #path)  
       end
-    end
-  end)
+      for i = 1, #context.its do
+        if context.its[i].result.passed then
+          paddedPrint("\27[32m✓\27[0m \27[2m" .. context.its[i].label .. "\27[0m", #path + 1)
+        else
+          paddedPrint("\27[31m✕\27[0m \27[2m" .. context.its[i].label .. "\27[0m", #path + 1)
+        end
+      end
+    end)
+  end
 
-  print("")
-
-  for i = 1, #plan.failed do
-    if #plan.failed[i].path == 0 then
-      print("\27[31m  ● " .. plan.failed[i].label .. "\27[0m")
+  for i = 1, #currentPlan.failed do
+    print("")
+    if #currentPlan.failed[i].path == 0 then
+      print("\27[31m  ● " .. currentPlan.failed[i].label .. "\27[0m")
     else
-      print("\27[31m  ● " .. breadcrumb(plan.failed[i].path) .. " > " .. plan.failed[i].label .. "\27[0m")
+      print("\27[31m  ● " .. breadcrumb(currentPlan.failed[i].path) .. " > " .. currentPlan.failed[i].label .. "\27[0m")
     end
     print("")
     print("\27[2m    expect(\27[0m\27[31mreceived\27[0m\27[2m).\27[0mtoBe\27[2m(\27[0m\27[32mexpected\27[0m\27[2m)\27[0m")
     print("")
-    print("    Expected: \27[32m".. tostring(plan.failed[i].expected) .."\27[0m")
-    print("    Received: \27[31m".. tostring(plan.failed[i].received) .."\27[0m")
+    print("    Expected: \27[32m".. tostring(currentPlan.failed[i].expected) .."\27[0m")
+    print("    Received: \27[31m".. tostring(currentPlan.failed[i].received) .."\27[0m")
     print("")
-    print("      at " .. plan.failed[i].error)
+    print("      at " .. currentPlan.failed[i].error)
+  end
+
+  if not singlefile and #currentPlan.failed > 0 then
     print("")
   end
 
-  local test_suites = {}
-  if plan.success then
-    table.insert(test_suites, "\27[32m1 passed\27[0m")
-  else
-    table.insert(test_suites, "\27[31m1 failed\27[0m")
+  plan.failed = plan.failed + #currentPlan.failed
+  plan.passed = plan.passed + currentPlan.passed
+  plan.time = plan.time + currentPlan.time
+end
+
+local reportPlan = function ()
+  print("")
+  local testSuites = {}
+  if plan.suitesFailed > 0 then
+    table.insert(testSuites, "\27[31m" .. plan.suitesFailed .. " failed\27[0m")
   end
-  table.insert(test_suites, "1 total")
-  print("\27[1mTest Suites: \27[0m" .. table.concat(test_suites, ", "))
+  if plan.suitesPassed > 0 then
+    table.insert(testSuites, "\27[32m" .. plan.suitesPassed .. " passed\27[0m")
+  end
+  table.insert(testSuites, (plan.suitesPassed + plan.suitesFailed) .. " total")
+  print("\27[1mTest Suites: \27[0m" .. table.concat(testSuites, ", "))
 
   local tests = {}
-  if #plan.failed > 0 then
-    table.insert(tests, "\27[31m" .. #plan.failed .. " failed\27[0m")
+  if plan.failed > 0 then
+    table.insert(tests, "\27[31m" .. plan.failed .. " failed\27[0m")
   end
   if plan.passed > 0 then
     table.insert(tests, "\27[32m" .. plan.passed .. " passed\27[0m")
   end
-  table.insert(tests, (plan.passed + #plan.failed) .. " total")
+  table.insert(tests, (plan.passed + plan.failed) .. " total")
   print("\27[1mTests:       \27[0m" .. table.concat(tests, ", "))
+
   print("\27[1mTime:        \27[0m" .. plan.time * 100 .. "s")
 end
 
 --- Run a test file
 local runFile = function (filename)
-  buildPlan(filename)
-  runPlan()
-  reportPlan()
-
-  if not plan.success then
-    os.exit(1)
-  end
+  buildCurrentPlan(filename)
+  runCurrentPlan()
+  reportCurrentPlan()
 end
 
 if #arg == 0 then
   print("lest [files...]")
 else
-  runFile(arg[1])
+  if #arg > 1 then
+    singlefile = false
+  end
+  plan = {
+    suitesPassed = 0,
+    suitesFailed = 0,
+    passed = 0,
+    failed = 0,
+    time = 0
+  }
+  for i = 1, #arg do
+    runFile(arg[i])
+  end
+  reportPlan()
+end
+
+if not currentPlan or not currentPlan.success then
+  os.exit(1)
 end

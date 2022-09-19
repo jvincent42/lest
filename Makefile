@@ -9,23 +9,21 @@ bin/lest.out: bin lest.lua
 
 bin:
 	@mkdir -p bin
-	@echo "created bin folder"
 
-~/bin/lest: bin/lest
-	@cp bin/lest ~/bin
-	@chmod 700 ~/bin/lest
+/usr/local/bin/lest: bin/lest
+	@cp bin/lest /usr/local/bin
+	@chmod 700 /usr/local/bin/lest
 	@echo "lest executable installed"
 
 # Commands
-install: bin/lest ~/bin/lest
+install: bin/lest /usr/local/bin/lest
 
 uninstall: clean
-	@rm -f ~/bin/lest
+	@rm -f /usr/local/bin/lest
 	@echo "uninstalled lest"
 
 clean:
 	@rm -rf bin
-	@echo "removed bin folder"
 
 re: clean bin/lest
 

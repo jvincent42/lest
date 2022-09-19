@@ -1,4 +1,4 @@
-[41m FAIL [0m ./specs/main.spec.lua
+[41m[30m FAIL [0m[0m ./specs/main.spec.lua
   [31m✕[0m [2mbreaks[0m
   my_story
     [31m✕[0m [2mnot runs[0m
@@ -61,4 +61,4 @@
 
 [1mTest Suites: [0m[31m1 failed[0m, 1 total
 [1mTests:       [0m[31m3 failed[0m, [32m22 passed[0m, 25 total
-[1mTime:        [0m0.0521s
+[1mTime:        [0m0.0852s
