@@ -294,7 +294,7 @@ end
 local reportCurrentPlan = function ()
   if currentPlan.success then
     plan.suitesPassed = plan.suitesPassed + 1
-    print("\27[42m\27[30m PASS \27[0m\27[0m ./" .. currentPlan.filename)
+    print("\27[42m\27[30m PASS \27[0m\27[0m ./\27[1m\27[4m" .. currentPlan.filename .. "\27[0m\27[0m")
   else
     plan.suitesFailed = plan.suitesFailed + 1
     print("\27[41m\27[30m FAIL \27[0m\27[0m ./" .. currentPlan.filename)
