@@ -391,6 +391,6 @@ else
   reportPlan()
 end
 
-if not currentPlan or not currentPlan.success then
+if plan.failed > 0 then
   os.exit(1)
 end
