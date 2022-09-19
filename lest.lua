@@ -358,7 +358,7 @@ local runFile = function (filename)
 end
 
 if #arg == 0 then
-  print("lest [filename..]")
+  print("lest [files...]")
 else
   runFile(arg[1])
 end
