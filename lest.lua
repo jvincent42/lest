@@ -105,9 +105,9 @@ function describe(label, cb)
   level = level - 1
 end
 
+--- Creates an expectable object
 local g_received = nil
 local g_expected = nil
---- Creates an expectable object
 function expect(received)
   g_received = received
   return {
@@ -340,6 +340,7 @@ local reportCurrentPlan = function ()
   plan.time = plan.time + currentPlan.time
 end
 
+--- Pretty print plan execution on stdout
 local reportPlan = function ()
   print("")
   local testSuites = {}

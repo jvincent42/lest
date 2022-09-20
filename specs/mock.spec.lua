@@ -21,7 +21,7 @@ describe("mocks", function ()
     expect(#mock.calls).toBe(10)
   end)
 
-  it("bootstrap", function ()
+  it("bootstraps", function ()
     local mock = fn()
     local mock2 = fn(mock)
     expect(mock2()).toBe(nil)
