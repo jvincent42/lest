@@ -168,6 +168,9 @@ local traverse = function(cb)
     local key = table.concat(path, ":")
     if not currentPlan.describes[key] then
       table.remove(path)
+      if #path == 0 then
+        return
+      end
       path[#path] = path[#path] + 1
     else
 
