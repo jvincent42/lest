@@ -1,3 +1,5 @@
+INSTALL_DIR=$(HOME)
+
 bin/lest: bin bin/lest.out
 	@echo "#!/usr/bin/env lua" > bin/lest
 	@cat bin/lest.out >> bin/lest
@@ -10,16 +12,16 @@ bin/lest.out: bin lest.lua
 bin:
 	@mkdir -p bin
 
-/usr/local/bin/lest: bin/lest
-	@cp bin/lest /usr/local/bin
-	@chmod 700 /usr/local/bin/lest
+$(INSTALL_DIR)/bin/lest: bin/lest
+	@cp bin/lest $(INSTALL_DIR)/bin
+	@chmod 700 $(INSTALL_DIR)/bin/lest
 	@echo "lest executable installed"
 
 # Commands
-install: bin/lest /usr/local/bin/lest
+install: bin/lest $(INSTALL_DIR)/bin/lest
 
 uninstall: clean
-	@rm -f /usr/local/bin/lest
+	@rm -f $(INSTALL_DIR)/bin/lest
 	@echo "uninstalled lest"
 
 clean:
