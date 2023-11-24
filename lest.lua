@@ -7,7 +7,7 @@ local currentPath = {}
 --- Get the n first elements of an array
 ---
 --- [pure]
-local elements = function (list, len)
+local elements = function(list, len)
   local new = {}
   for i = 1, len do
     new[i] = list[i]
@@ -21,10 +21,12 @@ end
 ---@param cb function
 ---@return table|function
 function fn(cb)
-  local Fn = { calls = {} }
+  local Fn = {
+    calls = {}
+  }
   local o = {}
   function o.__call(self, ...)
-    table.insert(self.calls, { ... })
+    table.insert(self.calls, {...})
     if cb then
       return cb(...)
     else
@@ -78,10 +80,18 @@ end
 --- Run a unit test
 function it(label, cb)
   if #currentPath == 0 then
-    table.insert(currentPlan.its, { label = label, cb = cb, result = nil })
+    table.insert(currentPlan.its, {
+      label = label,
+      cb = cb,
+      result = nil
+    })
   else
     local path = table.concat(elements(currentPath, level), ":")
-    table.insert(currentPlan.describes[path].its, { label = label, cb = cb, result = nil })
+    table.insert(currentPlan.describes[path].its, {
+      label = label,
+      cb = cb,
+      result = nil
+    })
   end
 end
 
@@ -112,12 +122,12 @@ function expect(received)
   g_received = received
   return {
     --- Comparison using equality operator (==)
-    toBe = function (expected)
+    toBe = function(expected)
       g_expected = expected
       assert(received == expected)
     end,
     --- Comparison using inequality operator (~=)
-    toNotBe = function (expected)
+    toNotBe = function(expected)
       g_expected = expected
       assert(received ~= expected)
     end
@@ -125,13 +135,13 @@ function expect(received)
 end
 
 --- Build test currentPlan
-local buildCurrentPlan = function (filename)
+local buildCurrentPlan = function(filename)
   currentPlan = {
     filename = filename,
     describes = {},
     its = {},
     beforeAll = {},
-    afterAll =  {},
+    afterAll = {},
     beforeEach = {},
     afterEach = {},
     success = true,
@@ -151,8 +161,8 @@ local buildCurrentPlan = function (filename)
 end
 
 --- Traverse describes tree
-local traverse = function (cb)
-  local path = { 1 }
+local traverse = function(cb)
+  local path = {1}
   cb(currentPlan, {})
   while true do
     local key = table.concat(path, ":")
@@ -163,7 +173,7 @@ local traverse = function (cb)
 
       cb(currentPlan.describes[key], {table.unpack(path)})
 
-      if currentPlan.describes[key..":1"] then
+      if currentPlan.describes[key .. ":1"] then
         table.insert(path, 1)
       else
         path[#path] = path[#path] + 1
@@ -181,7 +191,7 @@ local traverse = function (cb)
 end
 
 --- Run test currentPlan
-local runCurrentPlan = function ()
+local runCurrentPlan = function()
   local clock = os.clock()
 
   if #currentPlan.beforeAll > 0 then
@@ -191,7 +201,7 @@ local runCurrentPlan = function ()
   end
 
   local afterAlls = {}
-  traverse(function (context, path)
+  traverse(function(context, path)
     if #context.beforeAll > 0 then
       for j = 1, #context.beforeAll do
         context.beforeAll[j]()
@@ -232,10 +242,12 @@ local runCurrentPlan = function ()
           path = path,
           error = string.gsub(stack[5], "^%s+", ""),
           expected = g_expected,
-          received = g_received,
+          received = g_received
         })
       else
-        context.its[i].result = { passed = true }
+        context.its[i].result = {
+          passed = true
+        }
         currentPlan.passed = currentPlan.passed + 1
       end
 
@@ -286,12 +298,12 @@ function breadcrumb(path)
 end
 
 --- leftPad print
-local paddedPrint = function (str, depth)
+local paddedPrint = function(str, depth)
   print(string.rep("  ", depth) .. str)
 end
 
 --- Pretty print all this mess
-local reportCurrentPlan = function ()
+local reportCurrentPlan = function()
   if currentPlan.success then
     plan.suitesPassed = plan.suitesPassed + 1
     print("\27[42m\27[30m PASS \27[0m\27[0m ./\27[1m\27[4m" .. currentPlan.filename .. "\27[0m\27[0m")
@@ -301,9 +313,9 @@ local reportCurrentPlan = function ()
   end
 
   if singlefile then
-    traverse(function (context, path)
+    traverse(function(context, path)
       if context.label then
-        paddedPrint(context.label, #path)  
+        paddedPrint(context.label, #path)
       end
       for i = 1, #context.its do
         if context.its[i].result.passed then
@@ -320,13 +332,15 @@ local reportCurrentPlan = function ()
     if #currentPlan.failed[i].path == 0 then
       print("\27[31m  ● " .. currentPlan.failed[i].label .. "\27[0m")
     else
-      print("\27[31m  ● " .. breadcrumb(currentPlan.failed[i].path) .. " > " .. currentPlan.failed[i].label .. "\27[0m")
+      print("\27[31m  ● " .. breadcrumb(currentPlan.failed[i].path) .. " > " .. currentPlan.failed[i].label ..
+              "\27[0m")
     end
     print("")
-    print("\27[2m    expect(\27[0m\27[31mreceived\27[0m\27[2m).\27[0mtoBe\27[2m(\27[0m\27[32mexpected\27[0m\27[2m)\27[0m")
+    print(
+      "\27[2m    expect(\27[0m\27[31mreceived\27[0m\27[2m).\27[0mtoBe\27[2m(\27[0m\27[32mexpected\27[0m\27[2m)\27[0m")
     print("")
-    print("    Expected: \27[32m".. tostring(currentPlan.failed[i].expected) .."\27[0m")
-    print("    Received: \27[31m".. tostring(currentPlan.failed[i].received) .."\27[0m")
+    print("    Expected: \27[32m" .. tostring(currentPlan.failed[i].expected) .. "\27[0m")
+    print("    Received: \27[31m" .. tostring(currentPlan.failed[i].received) .. "\27[0m")
     print("")
     print("      at " .. currentPlan.failed[i].error)
   end
@@ -341,7 +355,7 @@ local reportCurrentPlan = function ()
 end
 
 --- Pretty print plan execution on stdout
-local reportPlan = function ()
+local reportPlan = function()
   print("")
   local testSuites = {}
   if plan.suitesFailed > 0 then
@@ -363,11 +377,11 @@ local reportPlan = function ()
   table.insert(tests, (plan.passed + plan.failed) .. " total")
   print("\27[1mTests:       \27[0m" .. table.concat(tests, ", "))
 
-  print("\27[1mTime:        \27[0m" .. plan.time * 100 .. "s")
+  print("\27[1mTime:        \27[0m" .. string.format("%.3f", plan.time * 100) .. "s")
 end
 
 --- Run a test file
-local runFile = function (filename)
+local runFile = function(filename)
   buildCurrentPlan(filename)
   runCurrentPlan()
   reportCurrentPlan()
