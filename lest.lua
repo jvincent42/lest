@@ -111,7 +111,9 @@ function describe(label, cb)
     beforeEach = {},
     afterEach = {}
   }
-  cb()
+  if cb then
+    cb()
+  end
   level = level - 1
 end
 
@@ -130,6 +132,28 @@ function expect(received)
     toNotBe = function(expected)
       g_expected = expected
       assert(received ~= expected)
+    end,
+    --- Checks if expected is in received values
+    toInclude = function(expected)
+      g_expected = expected
+      local found = false
+      for k, v in pairs(received) do
+        if v == expected then
+          found = true
+        end
+      end
+      assert(found == true)
+    end,
+    --- Checks if expected is not in received values
+    toNotInclude = function(expected)
+      g_expected = expected
+      local found = false
+      for k, v in pairs(received) do
+        if v == expected then
+          found = true
+        end
+      end
+      assert(found == false)
     end
   }
 end
